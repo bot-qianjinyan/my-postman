@@ -40,7 +40,11 @@ async def create_collection(
 ) -> CollectionOut:
     membership = get_membership(workspace_id, user, db)
     require_editor(membership)
-    col = Collection(workspace_id=workspace_id, name=payload.name.strip())
+    col = Collection(
+        workspace_id=workspace_id,
+        name=payload.name.strip(),
+        description=payload.description or "",
+    )
     db.add(col)
     db.commit()
     db.refresh(col)
@@ -65,7 +69,7 @@ def list_requests(
     rows = (
         db.query(ApiRequest)
         .filter(ApiRequest.collection_id == collection_id)
-        .order_by(ApiRequest.id.asc())
+        .order_by(ApiRequest.sort_order.asc(), ApiRequest.id.asc())
         .all()
     )
     return [request_to_out(r) for r in rows]
@@ -88,7 +92,11 @@ async def create_request(
         name=payload.name.strip(),
         method=payload.method.upper(),
         url=payload.url,
+        protocol=payload.protocol or "http",
         updated_by=user.id,
+        test_script=(
+            "pm.test('Status is set', lambda: pm.expect(pm.response.code is not None).to_be_truthy())"
+        ),
     )
     db.add(req)
     db.commit()
@@ -124,24 +132,35 @@ async def update_request(
             detail={"message": "Version conflict", "current": request_to_out(req).model_dump()},
         )
 
-    if payload.name is not None:
-        req.name = payload.name.strip()
-    if payload.method is not None:
-        req.method = payload.method.upper()
-    if payload.url is not None:
-        req.url = payload.url
+    fields = {
+        "name": lambda v: setattr(req, "name", v.strip()),
+        "description": lambda v: setattr(req, "description", v),
+        "protocol": lambda v: setattr(req, "protocol", v),
+        "method": lambda v: setattr(req, "method", v.upper()),
+        "url": lambda v: setattr(req, "url", v),
+        "body_type": lambda v: setattr(req, "body_type", v),
+        "body": lambda v: setattr(req, "body", v),
+        "auth_type": lambda v: setattr(req, "auth_type", v),
+        "pre_request_script": lambda v: setattr(req, "pre_request_script", v),
+        "test_script": lambda v: setattr(req, "test_script", v),
+        "graphql_query": lambda v: setattr(req, "graphql_query", v),
+        "graphql_variables": lambda v: setattr(req, "graphql_variables", v),
+        "grpc_service": lambda v: setattr(req, "grpc_service", v),
+        "grpc_method": lambda v: setattr(req, "grpc_method", v),
+        "grpc_message": lambda v: setattr(req, "grpc_message", v),
+    }
+    data = payload.model_dump(exclude_unset=True)
+    for key, apply in fields.items():
+        if key in data and data[key] is not None:
+            apply(data[key])
     if payload.headers is not None:
         req.headers_json = dumps_kv(payload.headers)
     if payload.params is not None:
         req.params_json = dumps_kv(payload.params)
-    if payload.body_type is not None:
-        req.body_type = payload.body_type
-    if payload.body is not None:
-        req.body = payload.body
-    if payload.auth_type is not None:
-        req.auth_type = payload.auth_type
     if payload.auth is not None:
         req.auth_json = json.dumps(payload.auth)
+    if payload.ws_messages is not None:
+        req.ws_messages_json = json.dumps(payload.ws_messages)
 
     req.version += 1
     req.updated_by = user.id

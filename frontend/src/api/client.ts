@@ -1,10 +1,15 @@
 import type {
   ApiRequest,
   Collection,
+  Comment,
+  Docs,
   Environment,
   KeyValue,
   Member,
+  MockServer,
+  Monitor,
   ProxyResponse,
+  RunnerResult,
   User,
   Workspace,
 } from './types'
@@ -91,7 +96,10 @@ export const api = {
   listRequests(collectionId: number) {
     return request<ApiRequest[]>(`/api/collections/${collectionId}/requests`)
   },
-  createRequest(collectionId: number, body: { name: string; method?: string; url?: string }) {
+  createRequest(
+    collectionId: number,
+    body: { name: string; method?: string; url?: string; protocol?: string },
+  ) {
     return request<ApiRequest>(`/api/collections/${collectionId}/requests`, {
       method: 'POST',
       body: JSON.stringify(body),
@@ -118,19 +126,84 @@ export const api = {
       body: JSON.stringify(body),
     })
   },
-  sendProxy(body: {
-    workspace_id: number
-    request_id?: number | null
-    method: string
-    url: string
-    headers: KeyValue[]
-    params: KeyValue[]
-    body?: string | null
-    body_type: string
-  }) {
+  sendProxy(body: Record<string, unknown>) {
     return request<ProxyResponse>('/api/proxy/send', {
       method: 'POST',
       body: JSON.stringify(body),
     })
+  },
+  runCollection(body: {
+    workspace_id: number
+    collection_id: number
+    environment_id?: number | null
+    stop_on_failure?: boolean
+  }) {
+    return request<RunnerResult>('/api/runner/run', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    })
+  },
+  importOpenAPI(body: { workspace_id: number; content: string; collection_name?: string }) {
+    return request<{ collection: Collection; imported_count: number }>('/api/import/openapi', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    })
+  },
+  exportPostman(collectionId: number) {
+    return request<Record<string, unknown>>(`/api/export/collections/${collectionId}/postman`)
+  },
+  listMocks(workspaceId: number) {
+    return request<MockServer[]>(`/api/workspaces/${workspaceId}/mocks`)
+  },
+  createMock(workspaceId: number, name: string) {
+    return request<MockServer>(`/api/workspaces/${workspaceId}/mocks`, {
+      method: 'POST',
+      body: JSON.stringify({ name }),
+    })
+  },
+  deleteMock(mockId: number) {
+    return request<{ ok: boolean }>(`/api/mocks/${mockId}`, { method: 'DELETE' })
+  },
+  getDocs(workspaceId: number) {
+    return request<Docs>(`/api/workspaces/${workspaceId}/docs`)
+  },
+  listComments(workspaceId: number, requestId?: number | null) {
+    const q = requestId ? `?request_id=${requestId}` : ''
+    return request<Comment[]>(`/api/workspaces/${workspaceId}/comments${q}`)
+  },
+  createComment(workspaceId: number, body: string, requestId?: number | null) {
+    return request<Comment>(`/api/workspaces/${workspaceId}/comments`, {
+      method: 'POST',
+      body: JSON.stringify({ body, request_id: requestId ?? null }),
+    })
+  },
+  listMonitors(workspaceId: number) {
+    return request<Monitor[]>(`/api/workspaces/${workspaceId}/monitors`)
+  },
+  createMonitor(
+    workspaceId: number,
+    body: {
+      name: string
+      collection_id: number
+      environment_id?: number | null
+      interval_minutes: number
+    },
+  ) {
+    return request<Monitor>(`/api/workspaces/${workspaceId}/monitors`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    })
+  },
+  runMonitor(monitorId: number) {
+    return request<RunnerResult>(`/api/monitors/${monitorId}/run`, { method: 'POST' })
+  },
+  updateMonitor(monitorId: number, body: { is_enabled?: boolean; interval_minutes?: number }) {
+    return request<Monitor>(`/api/monitors/${monitorId}`, {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    })
+  },
+  deleteMonitor(monitorId: number) {
+    return request<{ ok: boolean }>(`/api/monitors/${monitorId}`, { method: 'DELETE' })
   },
 }

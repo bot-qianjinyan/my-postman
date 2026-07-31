@@ -339,6 +339,81 @@ label {
   gap: 0.5rem;
 }
 
+.protocol-line {
+  grid-template-columns: 100px 100px 1fr auto auto;
+}
+
+.view-nav {
+  display: flex;
+  gap: 0.2rem;
+}
+
+.panel {
+  display: grid;
+  gap: 0.75rem;
+  align-content: start;
+}
+
+.panel .row,
+.row {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.script,
+.docs-md {
+  min-height: 180px;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+}
+
+.assert-list,
+.comment-list,
+.card-list,
+.runner-result ul {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0;
+}
+
+.assert-list .ok,
+.runner-result .ok {
+  color: var(--ok);
+}
+
+.assert-list .bad,
+.runner-result .bad {
+  color: var(--danger);
+}
+
+.card-list > li {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 0.85rem;
+  margin-bottom: 0.65rem;
+  background: #0f131b;
+}
+
+.comments {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.comment-form {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.comment-list li {
+  border-bottom: 1px solid var(--line);
+  padding: 0.5rem 0;
+}
+
+.comment-list p {
+  margin: 0.25rem 0 0;
+}
+
 .name-line {
   display: flex;
   gap: 0.75rem;

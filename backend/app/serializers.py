@@ -22,11 +22,21 @@ def _loads_dict(raw: str) -> dict:
         return {}
 
 
+def _loads_str_list(raw: str) -> list[str]:
+    try:
+        data = json.loads(raw or "[]")
+        return [str(x) for x in data] if isinstance(data, list) else []
+    except Exception:
+        return []
+
+
 def request_to_out(req: ApiRequest) -> RequestOut:
     return RequestOut(
         id=req.id,
         collection_id=req.collection_id,
         name=req.name,
+        description=getattr(req, "description", "") or "",
+        protocol=getattr(req, "protocol", "http") or "http",
         method=req.method,
         url=req.url,
         headers=_loads_list(req.headers_json),
@@ -35,6 +45,14 @@ def request_to_out(req: ApiRequest) -> RequestOut:
         body=req.body or "",
         auth_type=req.auth_type,
         auth=_loads_dict(req.auth_json),
+        pre_request_script=getattr(req, "pre_request_script", "") or "",
+        test_script=getattr(req, "test_script", "") or "",
+        graphql_query=getattr(req, "graphql_query", "") or "",
+        graphql_variables=getattr(req, "graphql_variables", "{}") or "{}",
+        grpc_service=getattr(req, "grpc_service", "") or "",
+        grpc_method=getattr(req, "grpc_method", "") or "",
+        grpc_message=getattr(req, "grpc_message", "{}") or "{}",
+        ws_messages=_loads_str_list(getattr(req, "ws_messages_json", "[]") or "[]"),
         version=req.version,
         updated_by=req.updated_by,
         updated_at=req.updated_at,
